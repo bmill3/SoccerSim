@@ -1,0 +1,40 @@
+# ===== Cabal / Haskell =====
+dist-newstyle/
+dist/
+cabal.project.local
+cabal.project.local~
+*.hi
+*.o
+*.dyn_hi
+*.dyn_o
+
+# Cabal sandbox (older setups)
+.cabal-sandbox/
+cabal.sandbox.config
+
+# Stack (if ever used)
+.stack-work/
+
+# ===== GHCi =====
+*.ghci
+
+# ===== macOS =====
+.DS_Store
+
+# ===== Editors / IDEs =====
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===== Logs / temp =====
+*.log
+*.tmp
+
+# ===== Build artifacts =====
+*.out
+*.exe
+
+# ===== Environment / secrets =====
+.env
+.env.*
