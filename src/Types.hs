@@ -1,11 +1,11 @@
-module SoccerSim.Types
-    ( Team (..)
-    , Result (..)
-    , MatchStatus (..)
+module Types
+    ( FixtureList
     , Match (..)
-    , Standing (..)
-    , FixtureList
+    , MatchStatus (..)
+    , Result (..)
     , Season (..)
+    , Standing (..)
+    , Team (..)
     ) where
 
 data Team = Team
@@ -37,6 +37,8 @@ data Match = Match
     }
     deriving (Eq, Ord, Read, Show)
 
+type FixtureList = [Match]
+
 data Standing = Standing
     { standingTeam :: Team
     , gamesPlayed :: Int
@@ -49,8 +51,6 @@ data Standing = Standing
     , points :: Int
     }
     deriving (Eq, Ord, Read, Show)
-
-type FixtureList = [Match]
 
 data Season = Season
     { seasonYear :: Int

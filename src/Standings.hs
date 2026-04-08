@@ -1,4 +1,4 @@
-module SoccerSim.Season
+module Standings
     ( completedMatches
     , createSeason
     , initialStanding
@@ -8,7 +8,7 @@ module SoccerSim.Season
     ) where
 
 import Data.List (sortBy)
-import SoccerSim.Types
+import Types
 
 initialStanding :: Team -> Standing
 initialStanding team =
@@ -38,6 +38,10 @@ completedMatches = filter isCompleted
             Just _ -> True
             Nothing -> False
 
+updateStandings :: [Team] -> FixtureList -> [Standing]
+updateStandings teams fixtures =
+    foldl applyMatch (initialStandings teams) (completedMatches fixtures)
+
 createSeason :: Int -> [Team] -> FixtureList -> Season
 createSeason year teams fixtures =
     Season
@@ -46,10 +50,6 @@ createSeason year teams fixtures =
         , seasonFixtures = fixtures
         , seasonStandings = sortStandings (updateStandings teams fixtures)
         }
-
-updateStandings :: [Team] -> FixtureList -> [Standing]
-updateStandings teams fixtures =
-    foldl applyMatch (initialStandings teams) (completedMatches fixtures)
 
 sortStandings :: [Standing] -> [Standing]
 sortStandings =
