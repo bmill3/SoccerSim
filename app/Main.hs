@@ -1,4 +1,6 @@
 module Main where
 
+import SoccerSim.Example (exampleSeason)
+
 main :: IO ()
-main = putStrLn "Hello, Haskell!"
+main = print exampleSeason
