@@ -1,0 +1,13 @@
+PlayerId,Status,ExpectedMinutes
+1,Injured,0
+2,Starting,90
+3,Starting,90
+4,Starting,90
+5,Starting,90
+6,Starting,90
+7,Suspended,0
+8,Starting,90
+9,Starting,90
+10,Benched,25
+11,Available,70
+12,NotCalledUp,0

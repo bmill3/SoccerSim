@@ -11,3 +11,9 @@ Each file contains 380 completed Premier League matches. The project currently
 uses `HomeTeam`, `AwayTeam`, `FTHG`, and `FTAG` to build fixtures, results,
 team attack strength, team defense strength, fixture probabilities, and
 projected expected-points standings.
+
+`player-stats-sample.csv` and `player-availability-sample.csv` are small sample
+inputs for the player-aware prediction feature. They are intentionally compact
+so the model can be tested without needing a paid live player/injury API. Replace
+or extend them with fuller player stats, predicted lineups, injuries, and
+suspensions when better data is available.

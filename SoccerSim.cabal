@@ -66,6 +66,7 @@ executable SoccerSim
         FixtureGenerator
         Predictor
         PremierLeagueData
+        PlayerData
         Simulation
         Standings
         TableDisplay
@@ -94,6 +95,7 @@ test-suite SoccerSim-test
         FixtureGenerator
         Predictor
         PremierLeagueData
+        PlayerData
         Simulation
         Standings
         TableDisplay

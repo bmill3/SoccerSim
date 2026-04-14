@@ -1,0 +1,13 @@
+PlayerId,PlayerName,Team,Position,Appearances,Starts,Minutes,Goals,Assists,ShotsOnTarget,Tackles,Interceptions,Saves,Rating
+1,Bukayo Saka,Arsenal,Forward,35,34,2950,16,9,42,41,12,0,7.7
+2,Martin Odegaard,Arsenal,Midfielder,35,34,3050,8,10,31,43,18,0,7.5
+3,William Saliba,Arsenal,Defender,38,38,3420,2,1,5,39,43,0,7.2
+4,David Raya,Arsenal,Goalkeeper,38,38,3420,0,0,0,0,0,95,7.0
+5,Eberechi Eze,Crystal Palace,Midfielder,31,30,2640,11,4,34,35,16,0,7.4
+6,Jean-Philippe Mateta,Crystal Palace,Forward,35,31,2600,16,5,39,28,8,0,7.2
+7,Marc Guehi,Crystal Palace,Defender,29,28,2500,0,1,2,32,38,0,7.0
+8,Dean Henderson,Crystal Palace,Goalkeeper,28,28,2520,0,0,0,0,0,82,6.9
+9,Mohamed Salah,Liverpool,Forward,32,31,2780,18,10,51,25,9,0,7.8
+10,Virgil van Dijk,Liverpool,Defender,36,36,3240,3,1,8,28,55,0,7.3
+11,Bruno Fernandes,Man United,Midfielder,35,35,3150,8,8,39,54,20,0,7.4
+12,Erling Haaland,Man City,Forward,34,33,2900,27,5,68,12,4,0,7.6

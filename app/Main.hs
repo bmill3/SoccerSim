@@ -2,7 +2,8 @@ module Main where
 
 import DataLoader (loadSampleTeams)
 import FixtureGenerator (generateRoundRobinFixtures)
-import Predictor (predictFixtures, predictStandings)
+import PlayerData (loadSamplePlayerData)
+import Predictor (predictFixturesWithPlayers, predictStandingsWithPlayers)
 import PremierLeagueData (loadPremierLeagueHistory)
 import Simulation (applyResults)
 import Standings (createSeason)
@@ -14,11 +15,13 @@ main = do
     putStrLn (renderSeason sampleSeason)
     putStrLn "Premier League model trained on 2022-23, 2023-24, and 2024-25 results."
     (teams, historicalFixtures) <- loadPremierLeagueHistory
+    (playerStats, availability) <- loadSamplePlayerData teams
     let previewFixtures = map clearResult (take 6 historicalFixtures)
-        predictions = predictFixtures historicalFixtures previewFixtures
-        projectedTable = take 10 (predictStandings teams historicalFixtures previewFixtures)
+        predictions = predictFixturesWithPlayers historicalFixtures playerStats availability previewFixtures
+        projectedTable =
+            take 10 (predictStandingsWithPlayers teams historicalFixtures playerStats availability previewFixtures)
     putStrLn ""
-    putStrLn "Sample fixture probabilities:"
+    putStrLn "Sample fixture probabilities with player availability:"
     putStrLn (renderFixturePredictions predictions)
     putStrLn "Projected standings preview:"
     putStrLn (renderPredictedStandings projectedTable)

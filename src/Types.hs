@@ -5,6 +5,11 @@ module Types
     , PredictedStanding (..)
     , FixturePrediction (..)
     , OutcomeProbabilities (..)
+    , AvailabilityStatus (..)
+    , Player (..)
+    , PlayerAvailability (..)
+    , PlayerStats (..)
+    , Position (..)
     , Result (..)
     , Season (..)
     , Standing (..)
@@ -15,6 +20,52 @@ data Team = Team
     { teamId :: Int
     , teamName :: String
     , teamShortName :: String
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data Position
+    = Goalkeeper
+    | Defender
+    | Midfielder
+    | Forward
+    deriving (Eq, Ord, Read, Show)
+
+data Player = Player
+    { playerId :: Int
+    , playerName :: String
+    , playerTeam :: Team
+    , playerPosition :: Position
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data PlayerStats = PlayerStats
+    { playerStatsPlayer :: Player
+    , playerAppearances :: Int
+    , playerStarts :: Int
+    , playerMinutes :: Int
+    , playerGoals :: Int
+    , playerAssists :: Int
+    , playerShotsOnTarget :: Int
+    , playerTackles :: Int
+    , playerInterceptions :: Int
+    , playerSaves :: Int
+    , playerRating :: Maybe Double
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data AvailabilityStatus
+    = Available
+    | Starting
+    | Benched
+    | Injured
+    | Suspended
+    | NotCalledUp
+    deriving (Eq, Ord, Read, Show)
+
+data PlayerAvailability = PlayerAvailability
+    { availabilityPlayer :: Player
+    , availabilityStatus :: AvailabilityStatus
+    , expectedMinutes :: Int
     }
     deriving (Eq, Ord, Read, Show)
 

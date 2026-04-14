@@ -1,7 +1,8 @@
 module Main where
 
 import FixtureGenerator (generateRoundRobinFixtures)
-import Predictor (predictFixture, predictStandings)
+import PlayerData (loadSamplePlayerData)
+import Predictor (predictFixture, predictFixtureWithPlayers, predictStandings)
 import PremierLeagueData (loadPremierLeagueHistory)
 import Simulation (applyResults)
 import Standings (createSeason, updateStandings)
@@ -15,6 +16,7 @@ main = do
     runTest "season creation sorts standings by points and tiebreakers" testCreateSeason
     runTest "premier league history loads from csv files" testPremierLeagueHistoryLoads
     runTest "predictor creates valid fixture probabilities" testPredictFixture
+    runTest "player availability adjusts fixture probabilities" testPlayerAvailabilityAdjustsPrediction
     putStrLn "All tests passed."
 
 runTest :: String -> IO () -> IO ()
@@ -144,6 +146,28 @@ testPredictFixture = do
     assertBool "Expected away win probability to be positive." (awayWinProbability probabilities > 0)
     assertBool "Expected probabilities to sum close to 1." (probabilityTotal > 0.99 && probabilityTotal <= 1.001)
     assertEqual "Expected one projected standing per team." (length teams) (length projectedStandings)
+
+testPlayerAvailabilityAdjustsPrediction :: IO ()
+testPlayerAvailabilityAdjustsPrediction = do
+    (teams, historicalFixtures) <- loadPremierLeagueHistory
+    (playerStats, availability) <- loadSamplePlayerData teams
+    let fixture =
+            (head historicalFixtures)
+                { matchStatus = Scheduled
+                , matchResult = Nothing
+                }
+        basePrediction = predictFixture historicalFixtures fixture
+        playerAwarePrediction = predictFixtureWithPlayers historicalFixtures playerStats availability fixture
+        baseProbabilities = outcomeProbabilities basePrediction
+        playerProbabilities = outcomeProbabilities playerAwarePrediction
+    assertBool
+        "Expected player availability to adjust home win probability."
+        (homeWinProbability baseProbabilities /= homeWinProbability playerProbabilities)
+    assertBool
+        "Expected player availability to adjust expected goals."
+        ( expectedHomeGoals basePrediction /= expectedHomeGoals playerAwarePrediction
+            || expectedAwayGoals basePrediction /= expectedAwayGoals playerAwarePrediction
+        )
 
 findStanding :: String -> [Standing] -> Standing
 findStanding shortName standings =
