@@ -2,6 +2,9 @@ module Types
     ( FixtureList
     , Match (..)
     , MatchStatus (..)
+    , PredictedStanding (..)
+    , FixturePrediction (..)
+    , OutcomeProbabilities (..)
     , Result (..)
     , Season (..)
     , Standing (..)
@@ -57,5 +60,28 @@ data Season = Season
     , seasonTeams :: [Team]
     , seasonFixtures :: FixtureList
     , seasonStandings :: [Standing]
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data OutcomeProbabilities = OutcomeProbabilities
+    { homeWinProbability :: Double
+    , drawProbability :: Double
+    , awayWinProbability :: Double
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data FixturePrediction = FixturePrediction
+    { predictedMatch :: Match
+    , outcomeProbabilities :: OutcomeProbabilities
+    , expectedHomeGoals :: Double
+    , expectedAwayGoals :: Double
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data PredictedStanding = PredictedStanding
+    { predictedTeam :: Team
+    , predictedGamesPlayed :: Int
+    , predictedPoints :: Double
+    , predictedGoalDifference :: Double
     }
     deriving (Eq, Ord, Read, Show)

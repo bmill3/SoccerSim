@@ -64,6 +64,8 @@ executable SoccerSim
     other-modules:
         DataLoader
         FixtureGenerator
+        Predictor
+        PremierLeagueData
         Simulation
         Standings
         TableDisplay
@@ -90,6 +92,8 @@ test-suite SoccerSim-test
     other-modules:
         DataLoader
         FixtureGenerator
+        Predictor
+        PremierLeagueData
         Simulation
         Standings
         TableDisplay

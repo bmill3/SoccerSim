@@ -1,6 +1,8 @@
 module Main where
 
 import FixtureGenerator (generateRoundRobinFixtures)
+import Predictor (predictFixture, predictStandings)
+import PremierLeagueData (loadPremierLeagueHistory)
 import Simulation (applyResults)
 import Standings (createSeason, updateStandings)
 import Types
@@ -11,6 +13,8 @@ main = do
     runTest "simulation applies only matching results" testApplyResults
     runTest "standings update wins draws losses and points" testUpdateStandings
     runTest "season creation sorts standings by points and tiebreakers" testCreateSeason
+    runTest "premier league history loads from csv files" testPremierLeagueHistoryLoads
+    runTest "predictor creates valid fixture probabilities" testPredictFixture
     putStrLn "All tests passed."
 
 runTest :: String -> IO () -> IO ()
@@ -24,6 +28,11 @@ assertEqual message expected actual
     | otherwise =
         error
             (message ++ "\nExpected: " ++ show expected ++ "\nActual:   " ++ show actual)
+
+assertBool :: String -> Bool -> IO ()
+assertBool message condition
+    | condition = pure ()
+    | otherwise = error message
 
 testFixtureGeneration :: IO ()
 testFixtureGeneration = do
@@ -107,6 +116,34 @@ testCreateSeason = do
         "Standings should be sorted by points, then goal difference, then goals for."
         ["ALP", "CHR", "BRV"]
         orderedTeams
+
+testPremierLeagueHistoryLoads :: IO ()
+testPremierLeagueHistoryLoads = do
+    (teams, fixtures) <- loadPremierLeagueHistory
+    assertBool "Expected more than one Premier League season worth of teams." (length teams > 20)
+    assertEqual "Expected three complete 380-match seasons." 1140 (length fixtures)
+    assertBool "Expected every loaded match to be finished." (all ((== Finished) . matchStatus) fixtures)
+
+testPredictFixture :: IO ()
+testPredictFixture = do
+    (teams, historicalFixtures) <- loadPremierLeagueHistory
+    let fixture =
+            (head historicalFixtures)
+                { matchStatus = Scheduled
+                , matchResult = Nothing
+                }
+        prediction = predictFixture historicalFixtures fixture
+        probabilities = outcomeProbabilities prediction
+        probabilityTotal =
+            homeWinProbability probabilities
+                + drawProbability probabilities
+                + awayWinProbability probabilities
+        projectedStandings = predictStandings teams historicalFixtures [fixture]
+    assertBool "Expected home win probability to be positive." (homeWinProbability probabilities > 0)
+    assertBool "Expected draw probability to be positive." (drawProbability probabilities > 0)
+    assertBool "Expected away win probability to be positive." (awayWinProbability probabilities > 0)
+    assertBool "Expected probabilities to sum close to 1." (probabilityTotal > 0.99 && probabilityTotal <= 1.001)
+    assertEqual "Expected one projected standing per team." (length teams) (length projectedStandings)
 
 findStanding :: String -> [Standing] -> Standing
 findStanding shortName standings =
