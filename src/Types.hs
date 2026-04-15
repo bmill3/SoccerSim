@@ -12,6 +12,9 @@ module Types
     , Position (..)
     , Result (..)
     , Season (..)
+    , SeasonSimulation (..)
+    , MatchWeekSimulation (..)
+    , SimulatedFixture (..)
     , Standing (..)
     , Team (..)
     ) where
@@ -134,5 +137,25 @@ data PredictedStanding = PredictedStanding
     , predictedGamesPlayed :: Int
     , predictedPoints :: Double
     , predictedGoalDifference :: Double
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data SimulatedFixture = SimulatedFixture
+    { fixturePrediction :: FixturePrediction
+    , simulatedFixture :: Match
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data MatchWeekSimulation = MatchWeekSimulation
+    { simulatedMatchWeek :: Int
+    , simulatedFixtures :: [SimulatedFixture]
+    , standingsAfterMatchWeek :: [Standing]
+    }
+    deriving (Eq, Ord, Read, Show)
+
+data SeasonSimulation = SeasonSimulation
+    { simulatedTeams :: [Team]
+    , simulatedSchedule :: FixtureList
+    , simulatedMatchWeeks :: [MatchWeekSimulation]
     }
     deriving (Eq, Ord, Read, Show)

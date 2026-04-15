@@ -1,7 +1,9 @@
 module Predictor
     ( predictFixture
+    , predictFixtureWithSeasonContext
     , predictFixtureWithPlayers
     , predictFixtures
+    , predictFixturesWithSeasonContext
     , predictFixturesWithPlayers
     , predictStandings
     , predictStandingsWithPlayers
@@ -29,6 +31,37 @@ predictFixture historicalFixtures match =
 predictFixturesWithPlayers :: FixtureList -> [PlayerStats] -> [PlayerAvailability] -> FixtureList -> [FixturePrediction]
 predictFixturesWithPlayers historicalFixtures playerStats availability fixtures =
     map (predictFixtureWithPlayers historicalFixtures playerStats availability) fixtures
+
+predictFixturesWithSeasonContext :: FixtureList -> FixtureList -> [PlayerStats] -> [PlayerAvailability] -> FixtureList -> [FixturePrediction]
+predictFixturesWithSeasonContext historicalFixtures currentFixtures playerStats availability fixtures =
+    map (predictFixtureWithSeasonContext historicalFixtures currentFixtures playerStats availability) fixtures
+
+predictFixtureWithSeasonContext :: FixtureList -> FixtureList -> [PlayerStats] -> [PlayerAvailability] -> Match -> FixturePrediction
+predictFixtureWithSeasonContext historicalFixtures currentFixtures playerStats availability match =
+    basePrediction
+        { outcomeProbabilities = scoreProbabilities adjustedHomeExpected adjustedAwayExpected
+        , expectedHomeGoals = adjustedHomeExpected
+        , expectedAwayGoals = adjustedAwayExpected
+        }
+  where
+    completedCurrentFixtures =
+        filter
+            (\currentMatch -> matchStatus currentMatch == Finished && matchResult currentMatch /= Nothing)
+            currentFixtures
+    basePrediction =
+        predictFixtureWithPlayers (historicalFixtures ++ completedCurrentFixtures) playerStats availability match
+    adjustedHomeExpected =
+        clampExpectedGoals
+            ( expectedHomeGoals basePrediction
+                * teamSeasonAttackFactor (homeTeam match) completedCurrentFixtures
+                * teamSeasonDefenseWeaknessFactor (awayTeam match) completedCurrentFixtures
+            )
+    adjustedAwayExpected =
+        clampExpectedGoals
+            ( expectedAwayGoals basePrediction
+                * teamSeasonAttackFactor (awayTeam match) completedCurrentFixtures
+                * teamSeasonDefenseWeaknessFactor (homeTeam match) completedCurrentFixtures
+            )
 
 predictFixtureWithPlayers :: FixtureList -> [PlayerStats] -> [PlayerAvailability] -> Match -> FixturePrediction
 predictFixtureWithPlayers historicalFixtures playerStats availability match =
@@ -148,7 +181,7 @@ addGame scored conceded stats =
 
 findStats :: Team -> [TeamStats] -> TeamStats
 findStats team model =
-    case filter (\stats -> statsTeam stats == team) model of
+    case filter (\stats -> teamName (statsTeam stats) == teamName team) model of
         stats : _ -> stats
         [] -> averageStats team model
 
@@ -156,13 +189,13 @@ averageStats :: Team -> [TeamStats] -> TeamStats
 averageStats team model =
     TeamStats
         { statsTeam = team
-        , statsPlayed = 1
-        , statsGoalsFor = roundedAverage statsGoalsFor
-        , statsGoalsAgainst = roundedAverage statsGoalsAgainst
+        , statsPlayed = averagePlayed
+        , statsGoalsFor = round (safeAverage (map goalsForPerMatch model) * fromIntegral averagePlayed)
+        , statsGoalsAgainst = round (safeAverage (map goalsAgainstPerMatch model) * fromIntegral averagePlayed)
         }
   where
-    roundedAverage field =
-        round (safeAverage (map (fromIntegral . field) model))
+    averagePlayed =
+        max 1 (round (safeAverage (map (fromIntegral . statsPlayed) model)))
 
 attackStrength :: TeamStats -> [TeamStats] -> Double
 attackStrength stats model =
@@ -284,6 +317,77 @@ ratingWeight stats =
         Just rating -> max 0.8 (min 1.25 (rating / 6.8))
         Nothing -> 1
 
+teamSeasonAttackFactor :: Team -> FixtureList -> Double
+teamSeasonAttackFactor team fixtures =
+    clampSeasonFactor (recentPointsFactor team fixtures * streakAttackFactor team fixtures)
+
+teamSeasonDefenseWeaknessFactor :: Team -> FixtureList -> Double
+teamSeasonDefenseWeaknessFactor team fixtures =
+    clampSeasonFactor (recentGoalsAgainstFactor team fixtures * streakDefenseWeaknessFactor team fixtures)
+
+recentPointsFactor :: Team -> FixtureList -> Double
+recentPointsFactor team fixtures =
+    0.92 + (recentPointsPerMatch / 3 * 0.16)
+  where
+    recentMatches = take 5 (reverse (matchesForTeam team fixtures))
+    recentPointsPerMatch =
+        safeRatio
+            (fromIntegral (sum (map (actualPointsFor team) recentMatches)))
+            (fromIntegral (length recentMatches))
+
+recentGoalsAgainstFactor :: Team -> FixtureList -> Double
+recentGoalsAgainstFactor team fixtures =
+    0.92 + min 0.18 (recentConcededPerMatch * 0.06)
+  where
+    recentMatches = take 5 (reverse (matchesForTeam team fixtures))
+    recentConcededPerMatch =
+        safeRatio
+            (fromIntegral (sum (map (goalsAgainstFor team) recentMatches)))
+            (fromIntegral (length recentMatches))
+
+streakAttackFactor :: Team -> FixtureList -> Double
+streakAttackFactor team fixtures =
+    case currentStreak team fixtures of
+        ('W', lengthValue) -> 1 + min 0.12 (0.025 * fromIntegral lengthValue)
+        ('L', lengthValue) -> 1 - min 0.12 (0.025 * fromIntegral lengthValue)
+        ('D', lengthValue) -> 1 - min 0.04 (0.01 * fromIntegral lengthValue)
+        _ -> 1
+
+streakDefenseWeaknessFactor :: Team -> FixtureList -> Double
+streakDefenseWeaknessFactor team fixtures =
+    case currentStreak team fixtures of
+        ('W', lengthValue) -> 1 - min 0.08 (0.018 * fromIntegral lengthValue)
+        ('L', lengthValue) -> 1 + min 0.12 (0.025 * fromIntegral lengthValue)
+        ('D', _) -> 1
+        _ -> 1
+
+currentStreak :: Team -> FixtureList -> (Char, Int)
+currentStreak team fixtures =
+    case reverse (map (resultCode team) (matchesForTeam team fixtures)) of
+        [] -> ('N', 0)
+        latestResult : earlierResults ->
+            (latestResult, 1 + length (takeWhile (== latestResult) earlierResults))
+
+matchesForTeam :: Team -> FixtureList -> FixtureList
+matchesForTeam team fixtures =
+    filter (isMatchFor team) fixtures
+
+resultCode :: Team -> Match -> Char
+resultCode team match =
+    case actualPointsFor team match of
+        3 -> 'W'
+        1 -> 'D'
+        _ -> 'L'
+
+goalsAgainstFor :: Team -> Match -> Int
+goalsAgainstFor team match =
+    case matchResult match of
+        Nothing -> 0
+        Just result
+            | team == homeTeam match -> resultAwayGoals result
+            | team == awayTeam match -> resultHomeGoals result
+            | otherwise -> 0
+
 scoreProbabilities :: Double -> Double -> OutcomeProbabilities
 scoreProbabilities homeExpected awayExpected =
     OutcomeProbabilities
@@ -403,3 +507,7 @@ clampExpectedGoals =
 clampAvailabilityFactor :: Double -> Double
 clampAvailabilityFactor =
     max 0.65 . min 1.2
+
+clampSeasonFactor :: Double -> Double
+clampSeasonFactor =
+    max 0.82 . min 1.18

@@ -3,28 +3,24 @@ module Main where
 import DataLoader (loadSampleTeams)
 import FixtureGenerator (generateRoundRobinFixtures)
 import PlayerData (loadSamplePlayerData)
-import Predictor (predictFixturesWithPlayers, predictStandingsWithPlayers)
-import PremierLeagueData (loadPremierLeagueHistory)
+import PremierLeagueData (loadLatestPremierLeagueTeams, loadPremierLeagueHistory)
+import SeasonSimulator (simulateSeason)
 import Simulation (applyResults)
 import Standings (createSeason)
-import TableDisplay (renderFixturePredictions, renderPredictedStandings, renderSeason)
-import Types (Match (..), MatchStatus (..), Result (..), Season)
+import TableDisplay (renderSeason, renderSeasonSimulation)
+import Types (Result (..), Season)
 
 main :: IO ()
 main = do
     putStrLn (renderSeason sampleSeason)
     putStrLn "Premier League model trained on 2022-23, 2023-24, and 2024-25 results."
-    (teams, historicalFixtures) <- loadPremierLeagueHistory
-    (playerStats, availability) <- loadSamplePlayerData teams
-    let previewFixtures = map clearResult (take 6 historicalFixtures)
-        predictions = predictFixturesWithPlayers historicalFixtures playerStats availability previewFixtures
-        projectedTable =
-            take 10 (predictStandingsWithPlayers teams historicalFixtures playerStats availability previewFixtures)
+    (_, historicalFixtures) <- loadPremierLeagueHistory
+    seasonTeams <- loadLatestPremierLeagueTeams
+    (playerStats, availability) <- loadSamplePlayerData seasonTeams
+    let simulation = simulateSeason seasonTeams historicalFixtures playerStats availability
     putStrLn ""
-    putStrLn "Sample fixture probabilities with player availability:"
-    putStrLn (renderFixturePredictions predictions)
-    putStrLn "Projected standings preview:"
-    putStrLn (renderPredictedStandings projectedTable)
+    putStrLn "Full 38-match-week simulation with player availability, in-season performance, and streak form:"
+    putStrLn (renderSeasonSimulation simulation)
 
 sampleSeason :: Season
 sampleSeason = createSeason 2026 teams completedFixtures
@@ -38,10 +34,3 @@ sampleSeason = createSeason 2026 teams completedFixtures
             , (3, Result 3 2)
             ]
             scheduledFixtures
-
-clearResult :: Match -> Match
-clearResult match =
-    match
-        { matchStatus = Scheduled
-        , matchResult = Nothing
-        }

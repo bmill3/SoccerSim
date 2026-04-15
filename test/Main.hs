@@ -1,9 +1,11 @@
 module Main where
 
-import FixtureGenerator (generateRoundRobinFixtures)
+import Data.List (nub, sort)
+import FixtureGenerator (generateDoubleRoundRobinFixtures, generateRoundRobinFixtures)
 import PlayerData (loadSamplePlayerData)
 import Predictor (predictFixture, predictFixtureWithPlayers, predictStandings)
-import PremierLeagueData (loadPremierLeagueHistory)
+import PremierLeagueData (loadLatestPremierLeagueTeams, loadPremierLeagueHistory)
+import SeasonSimulator (simulateSeason)
 import Simulation (applyResults)
 import Standings (createSeason, updateStandings)
 import Types
@@ -17,6 +19,8 @@ main = do
     runTest "premier league history loads from csv files" testPremierLeagueHistoryLoads
     runTest "predictor creates valid fixture probabilities" testPredictFixture
     runTest "player availability adjusts fixture probabilities" testPlayerAvailabilityAdjustsPrediction
+    runTest "double round robin creates 38 balanced match weeks" testDoubleRoundRobinSeasonSchedule
+    runTest "season simulator produces week by week standings" testSeasonSimulation
     putStrLn "All tests passed."
 
 runTest :: String -> IO () -> IO ()
@@ -169,6 +173,33 @@ testPlayerAvailabilityAdjustsPrediction = do
             || expectedAwayGoals basePrediction /= expectedAwayGoals playerAwarePrediction
         )
 
+testDoubleRoundRobinSeasonSchedule :: IO ()
+testDoubleRoundRobinSeasonSchedule = do
+    teams <- loadLatestPremierLeagueTeams
+    let fixtures = generateDoubleRoundRobinFixtures teams
+        matchWeeks = sort (nub (map matchDay fixtures))
+    assertEqual "Expected 20 teams from the latest Premier League season file." 20 (length teams)
+    assertEqual "Expected 380 fixtures in a 20-team double round robin." 380 (length fixtures)
+    assertEqual "Expected 38 match weeks." [1 .. 38] matchWeeks
+    assertBool "Expected every match week to have 10 fixtures." (all ((== 10) . fixturesInWeek fixtures) [1 .. 38])
+    assertBool "Expected each team to play 19 home fixtures." (all ((== 19) . homeFixturesFor fixtures) teams)
+    assertBool "Expected each team to play 19 away fixtures." (all ((== 19) . awayFixturesFor fixtures) teams)
+
+testSeasonSimulation :: IO ()
+testSeasonSimulation = do
+    teams <- loadLatestPremierLeagueTeams
+    (_, historicalFixtures) <- loadPremierLeagueHistory
+    (playerStats, availability) <- loadSamplePlayerData teams
+    let simulation = simulateSeason teams historicalFixtures playerStats availability
+        matchWeeks = simulatedMatchWeeks simulation
+        finalWeek = last matchWeeks
+    assertEqual "Expected 38 simulated match weeks." 38 (length matchWeeks)
+    assertBool "Expected every simulated match week to have 10 fixtures." (all ((== 10) . length . simulatedFixtures) matchWeeks)
+    assertEqual "Expected final standings to include all 20 teams." 20 (length (standingsAfterMatchWeek finalWeek))
+    assertBool
+        "Expected every final standing to show a full 38-game season."
+        (all ((== 38) . gamesPlayed) (standingsAfterMatchWeek finalWeek))
+
 findStanding :: String -> [Standing] -> Standing
 findStanding shortName standings =
     case filter matchesTeam standings of
@@ -176,3 +207,15 @@ findStanding shortName standings =
         _ -> error ("Could not find standing for team " ++ shortName)
   where
     matchesTeam standing = teamShortName (standingTeam standing) == shortName
+
+fixturesInWeek :: FixtureList -> Int -> Int
+fixturesInWeek fixtures weekNumber =
+    length (filter (\match -> matchDay match == weekNumber) fixtures)
+
+homeFixturesFor :: FixtureList -> Team -> Int
+homeFixturesFor fixtures team =
+    length (filter (\match -> homeTeam match == team) fixtures)
+
+awayFixturesFor :: FixtureList -> Team -> Int
+awayFixturesFor fixtures team =
+    length (filter (\match -> awayTeam match == team) fixtures)

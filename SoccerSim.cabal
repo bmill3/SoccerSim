@@ -68,6 +68,7 @@ executable SoccerSim
         PremierLeagueData
         PlayerData
         Simulation
+        SeasonSimulator
         Standings
         TableDisplay
         Types
@@ -97,6 +98,7 @@ test-suite SoccerSim-test
         PremierLeagueData
         PlayerData
         Simulation
+        SeasonSimulator
         Standings
         TableDisplay
         Types

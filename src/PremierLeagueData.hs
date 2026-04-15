@@ -1,6 +1,8 @@
 module PremierLeagueData
-    ( loadPremierLeagueHistory
+    ( loadLatestPremierLeagueTeams
+    , loadPremierLeagueHistory
     , loadPremierLeagueSeasonFiles
+    , loadPremierLeagueTeamsFromFile
     , parsePremierLeagueCsv
     , premierLeagueDataFiles
     ) where
@@ -29,6 +31,17 @@ premierLeagueDataFiles =
 loadPremierLeagueHistory :: IO ([Team], FixtureList)
 loadPremierLeagueHistory =
     loadPremierLeagueSeasonFiles premierLeagueDataFiles
+
+loadLatestPremierLeagueTeams :: IO [Team]
+loadLatestPremierLeagueTeams =
+    loadPremierLeagueTeamsFromFile (last premierLeagueDataFiles)
+
+loadPremierLeagueTeamsFromFile :: FilePath -> IO [Team]
+loadPremierLeagueTeamsFromFile filePath = do
+    contents <- readFile filePath
+    case parsePremierLeagueCsv contents of
+        Left message -> fail message
+        Right rawMatches -> pure (buildTeams rawMatches)
 
 loadPremierLeagueSeasonFiles :: [FilePath] -> IO ([Team], FixtureList)
 loadPremierLeagueSeasonFiles filePaths = do

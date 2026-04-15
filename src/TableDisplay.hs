@@ -2,6 +2,7 @@ module TableDisplay
     ( renderSeason
     , renderFixturePredictions
     , renderPredictedStandings
+    , renderSeasonSimulation
     , renderStandings
     ) where
 
@@ -18,6 +19,48 @@ renderSeason season =
         , ""
         , renderStandings (seasonStandings season)
         ]
+
+renderSeasonSimulation :: SeasonSimulation -> String
+renderSeasonSimulation simulation =
+    unlines (map renderMatchWeek (simulatedMatchWeeks simulation))
+
+renderMatchWeek :: MatchWeekSimulation -> String
+renderMatchWeek matchWeek =
+    unlines
+        [ "Match Week " ++ show (simulatedMatchWeek matchWeek)
+        , ""
+        , renderSimulatedFixtures (simulatedFixtures matchWeek)
+        , "Standings after Match Week " ++ show (simulatedMatchWeek matchWeek) ++ ":"
+        , renderStandings (standingsAfterMatchWeek matchWeek)
+        ]
+
+renderSimulatedFixtures :: [SimulatedFixture] -> String
+renderSimulatedFixtures fixtures =
+    unlines (header : separator : map renderSimulatedFixture fixtures)
+  where
+    header = intercalate " | " ["Fixture", "Home", "Draw", "Away", "xG", "Sim"]
+    separator = replicate (length header) '-'
+
+renderSimulatedFixture :: SimulatedFixture -> String
+renderSimulatedFixture simulated =
+    intercalate
+        " | "
+        [ teamShortName (homeTeam match) ++ " vs " ++ teamShortName (awayTeam match)
+        , formatPercent (homeWinProbability probabilities)
+        , formatPercent (drawProbability probabilities)
+        , formatPercent (awayWinProbability probabilities)
+        , formatDouble (expectedHomeGoals prediction) ++ "-" ++ formatDouble (expectedAwayGoals prediction)
+        , renderResult (matchResult match)
+        ]
+  where
+    prediction = fixturePrediction simulated
+    probabilities = outcomeProbabilities prediction
+    match = simulatedFixture simulated
+
+renderResult :: Maybe Result -> String
+renderResult Nothing = "-"
+renderResult (Just result) =
+    show (resultHomeGoals result) ++ "-" ++ show (resultAwayGoals result)
 
 renderStandings :: [Standing] -> String
 renderStandings standings =
