@@ -1,5 +1,6 @@
 module TableDisplay
-    ( renderSeason
+    ( renderMatchWeek
+    , renderSeason
     , renderFixturePredictions
     , renderPredictedStandings
     , renderSeasonSimulation

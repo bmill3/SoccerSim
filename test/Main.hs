@@ -1,5 +1,6 @@
 module Main where
 
+import AppData (GuiData (..), GuiWeek (..), loadGuiData)
 import Data.List (nub, sort)
 import FixtureGenerator (generateDoubleRoundRobinFixtures, generateRoundRobinFixtures)
 import PlayerData (loadSamplePlayerData)
@@ -21,6 +22,7 @@ main = do
     runTest "player availability adjusts fixture probabilities" testPlayerAvailabilityAdjustsPrediction
     runTest "double round robin creates 38 balanced match weeks" testDoubleRoundRobinSeasonSchedule
     runTest "season simulator produces week by week standings" testSeasonSimulation
+    runTest "gui data exposes structured weeks and final standings" testGuiData
     putStrLn "All tests passed."
 
 runTest :: String -> IO () -> IO ()
@@ -199,6 +201,15 @@ testSeasonSimulation = do
     assertBool
         "Expected every final standing to show a full 38-game season."
         (all ((== 38) . gamesPlayed) (standingsAfterMatchWeek finalWeek))
+
+testGuiData :: IO ()
+testGuiData = do
+    guiData <- loadGuiData
+    assertEqual "Expected 38 GUI match weeks." 38 (length (guiMatchWeeks guiData))
+    assertEqual "Expected 20 final GUI standings rows." 20 (length (guiFinalStandings guiData))
+    let firstWeek = head (guiMatchWeeks guiData)
+    assertEqual "Expected 10 GUI fixtures in the first week." 10 (length (guiWeekFixtures firstWeek))
+    assertEqual "Expected 20 GUI standings rows in the first week." 20 (length (guiWeekStandings firstWeek))
 
 findStanding :: String -> [Standing] -> Standing
 findStanding shortName standings =
