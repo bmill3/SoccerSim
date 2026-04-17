@@ -2,7 +2,9 @@ module Main where
 
 import AppData (GuiData (..), GuiWeek (..), loadGuiData)
 import Data.List (nub, sort)
+import FeatureEngineering (buildTrainingExamples, featureValues, featuresForFixture, trainingFeatures)
 import FixtureGenerator (generateDoubleRoundRobinFixtures, generateRoundRobinFixtures)
+import MLModel (predictOutcomeProbabilities, trainLogisticModel)
 import PlayerData (loadKeyPlayerData)
 import Predictor (predictFixture, predictFixtureWithPlayers, predictStandings)
 import PremierLeagueData (loadLatestPremierLeagueTeams, loadPremierLeagueHistory)
@@ -18,6 +20,7 @@ main = do
     runTest "standings update wins draws losses and points" testUpdateStandings
     runTest "season creation sorts standings by points and tiebreakers" testCreateSeason
     runTest "premier league history loads from csv files" testPremierLeagueHistoryLoads
+    runTest "ml training creates valid outcome probabilities" testMachineLearningProbabilities
     runTest "predictor creates valid fixture probabilities" testPredictFixture
     runTest "player availability adjusts fixture probabilities" testPlayerAvailabilityAdjustsPrediction
     runTest "double round robin creates 38 balanced match weeks" testDoubleRoundRobinSeasonSchedule
@@ -131,6 +134,26 @@ testPremierLeagueHistoryLoads = do
     assertBool "Expected more than one Premier League season worth of teams." (length teams > 20)
     assertEqual "Expected three complete 380-match seasons." 1140 (length fixtures)
     assertBool "Expected every loaded match to be finished." (all ((== Finished) . matchStatus) fixtures)
+
+testMachineLearningProbabilities :: IO ()
+testMachineLearningProbabilities = do
+    (_, historicalFixtures) <- loadPremierLeagueHistory
+    let examples = buildTrainingExamples historicalFixtures
+        model = trainLogisticModel examples
+        fixture =
+            (head historicalFixtures)
+                { matchStatus = Scheduled
+                , matchResult = Nothing
+                }
+        featureRow = featuresForFixture historicalFixtures fixture
+        probabilities = predictOutcomeProbabilities model (featureValues featureRow)
+        probabilityTotal =
+            homeWinProbability probabilities
+                + drawProbability probabilities
+                + awayWinProbability probabilities
+    assertEqual "Expected one ML training row per historical fixture." 1140 (length examples)
+    assertBool "Expected ML features to include multiple pre-match values." (length (featureValues (trainingFeatures (head examples))) > 10)
+    assertBool "Expected trained ML probabilities to sum to 1." (probabilityTotal > 0.999 && probabilityTotal < 1.001)
 
 testPredictFixture :: IO ()
 testPredictFixture = do

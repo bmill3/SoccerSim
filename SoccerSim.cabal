@@ -64,8 +64,10 @@ executable SoccerSim
     other-modules:
         AppData
         DataLoader
+        FeatureEngineering
         FixtureGenerator
         Gui
+        MLModel
         Predictor
         PremierLeagueData
         PlayerData
@@ -101,8 +103,10 @@ test-suite SoccerSim-test
     other-modules:
         AppData
         DataLoader
+        FeatureEngineering
         FixtureGenerator
         Gui
+        MLModel
         Predictor
         PremierLeagueData
         PlayerData

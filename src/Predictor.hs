@@ -10,6 +10,8 @@ module Predictor
     ) where
 
 import Data.List (sortBy)
+import FeatureEngineering (buildTrainingExamples, featureValues, featuresForFixture)
+import MLModel (LogisticModel, predictOutcomeProbabilities, trainLogisticModel)
 import Types
 
 data TeamStats = TeamStats
@@ -30,26 +32,49 @@ predictFixture historicalFixtures match =
 
 predictFixturesWithPlayers :: FixtureList -> [PlayerStats] -> [PlayerAvailability] -> FixtureList -> [FixturePrediction]
 predictFixturesWithPlayers historicalFixtures playerStats availability fixtures =
-    map (predictFixtureWithPlayers historicalFixtures playerStats availability) fixtures
+    map (predictFixtureWithModels historicalFixtures teamModel logisticModel playerStats availability) fixtures
+  where
+    teamModel =
+        buildModel historicalFixtures
+    logisticModel =
+        trainLogisticModel (buildTrainingExamples historicalFixtures)
 
 predictFixturesWithSeasonContext :: FixtureList -> FixtureList -> [PlayerStats] -> [PlayerAvailability] -> FixtureList -> [FixturePrediction]
 predictFixturesWithSeasonContext historicalFixtures currentFixtures playerStats availability fixtures =
-    map (predictFixtureWithSeasonContext historicalFixtures currentFixtures playerStats availability) fixtures
+    map (predictFixtureWithSeasonContextModels historicalFixtures currentFixtures teamModel logisticModel playerStats availability) fixtures
+  where
+    completedCurrentFixtures =
+        completedFixturesOnly currentFixtures
+    teamModel =
+        buildModel (historicalFixtures ++ completedCurrentFixtures)
+    logisticModel =
+        trainLogisticModel (buildTrainingExamples historicalFixtures)
 
 predictFixtureWithSeasonContext :: FixtureList -> FixtureList -> [PlayerStats] -> [PlayerAvailability] -> Match -> FixturePrediction
 predictFixtureWithSeasonContext historicalFixtures currentFixtures playerStats availability match =
+    predictFixtureWithSeasonContextModels historicalFixtures currentFixtures teamModel logisticModel playerStats availability match
+  where
+    completedCurrentFixtures =
+        completedFixturesOnly currentFixtures
+    teamModel =
+        buildModel (historicalFixtures ++ completedCurrentFixtures)
+    logisticModel =
+        trainLogisticModel (buildTrainingExamples historicalFixtures)
+
+predictFixtureWithSeasonContextModels :: FixtureList -> FixtureList -> [TeamStats] -> LogisticModel -> [PlayerStats] -> [PlayerAvailability] -> Match -> FixturePrediction
+predictFixtureWithSeasonContextModels historicalFixtures currentFixtures teamModel logisticModel playerStats availability match =
     basePrediction
-        { outcomeProbabilities = scoreProbabilities adjustedHomeExpected adjustedAwayExpected
+        { outcomeProbabilities = blendedOutcomeProbabilities logisticModel contextFixtures match (scoreProbabilities adjustedHomeExpected adjustedAwayExpected)
         , expectedHomeGoals = adjustedHomeExpected
         , expectedAwayGoals = adjustedAwayExpected
         }
   where
     completedCurrentFixtures =
-        filter
-            (\currentMatch -> matchStatus currentMatch == Finished && matchResult currentMatch /= Nothing)
-            currentFixtures
+        completedFixturesOnly currentFixtures
+    contextFixtures =
+        historicalFixtures ++ completedCurrentFixtures
     basePrediction =
-        predictFixtureWithPlayers (historicalFixtures ++ completedCurrentFixtures) playerStats availability match
+        predictFixtureWithModels contextFixtures teamModel logisticModel playerStats availability match
     adjustedHomeExpected =
         clampExpectedGoals
             ( expectedHomeGoals basePrediction
@@ -65,6 +90,15 @@ predictFixtureWithSeasonContext historicalFixtures currentFixtures playerStats a
 
 predictFixtureWithPlayers :: FixtureList -> [PlayerStats] -> [PlayerAvailability] -> Match -> FixturePrediction
 predictFixtureWithPlayers historicalFixtures playerStats availability match =
+    predictFixtureWithModels historicalFixtures teamModel logisticModel playerStats availability match
+  where
+    teamModel =
+        buildModel historicalFixtures
+    logisticModel =
+        trainLogisticModel (buildTrainingExamples historicalFixtures)
+
+predictFixtureWithModels :: FixtureList -> [TeamStats] -> LogisticModel -> [PlayerStats] -> [PlayerAvailability] -> Match -> FixturePrediction
+predictFixtureWithModels historicalFixtures model logisticModel playerStats availability match =
     FixturePrediction
         { predictedMatch = match
         , outcomeProbabilities = probabilities
@@ -72,7 +106,6 @@ predictFixtureWithPlayers historicalFixtures playerStats availability match =
         , expectedAwayGoals = awayExpectedGoals
         }
   where
-    model = buildModel historicalFixtures
     homeStats = findStats (homeTeam match) model
     awayStats = findStats (awayTeam match) model
     homeExpectedGoals =
@@ -95,7 +128,27 @@ predictFixtureWithPlayers historicalFixtures playerStats availability match =
         leagueAwayGoalsPerMatch historicalFixtures
             * attackStrength awayStats model
             * defenseWeakness homeStats model
-    probabilities = scoreProbabilities homeExpectedGoals awayExpectedGoals
+    probabilities =
+        blendedOutcomeProbabilities logisticModel historicalFixtures match (scoreProbabilities homeExpectedGoals awayExpectedGoals)
+
+blendedOutcomeProbabilities :: LogisticModel -> FixtureList -> Match -> OutcomeProbabilities -> OutcomeProbabilities
+blendedOutcomeProbabilities logisticModel contextFixtures match poissonProbabilities =
+    normalizeProbabilities
+        (OutcomeProbabilities
+            { homeWinProbability =
+                blendWeight * homeWinProbability mlProbabilities
+                    + (1 - blendWeight) * homeWinProbability poissonProbabilities
+            , drawProbability =
+                blendWeight * drawProbability mlProbabilities
+                    + (1 - blendWeight) * drawProbability poissonProbabilities
+            , awayWinProbability =
+                blendWeight * awayWinProbability mlProbabilities
+                    + (1 - blendWeight) * awayWinProbability poissonProbabilities
+            })
+  where
+    blendWeight = 0.65
+    mlProbabilities =
+        predictOutcomeProbabilities logisticModel (featureValues (featuresForFixture contextFixtures match))
 
 predictStandings :: [Team] -> FixtureList -> FixtureList -> [PredictedStanding]
 predictStandings teams historicalFixtures fixtures =
@@ -408,6 +461,34 @@ scoreProbabilities homeExpected awayExpected =
         sum [probability | (homeGoals, awayGoals, probability) <- scoreProbabilitiesByScore, homeGoals == awayGoals]
     awayWin =
         sum [probability | (homeGoals, awayGoals, probability) <- scoreProbabilitiesByScore, homeGoals < awayGoals]
+
+completedFixturesOnly :: FixtureList -> FixtureList
+completedFixturesOnly fixtures =
+    [ match
+    | match <- fixtures
+    , matchStatus match == Finished
+    , matchResult match /= Nothing
+    ]
+
+normalizeProbabilities :: OutcomeProbabilities -> OutcomeProbabilities
+normalizeProbabilities probabilities
+    | total <= 0 =
+        OutcomeProbabilities
+            { homeWinProbability = 0.45
+            , drawProbability = 0.25
+            , awayWinProbability = 0.30
+            }
+    | otherwise =
+        OutcomeProbabilities
+            { homeWinProbability = homeWinProbability probabilities / total
+            , drawProbability = drawProbability probabilities / total
+            , awayWinProbability = awayWinProbability probabilities / total
+            }
+  where
+    total =
+        homeWinProbability probabilities
+            + drawProbability probabilities
+            + awayWinProbability probabilities
 
 poisson :: Double -> Int -> Double
 poisson lambda goals =
