@@ -1,5 +1,8 @@
 module PlayerData
-    ( loadSamplePlayerData
+    ( keyPlayerAvailabilityDataFile
+    , keyPlayerStatsDataFile
+    , loadKeyPlayerData
+    , loadSamplePlayerData
     , loadPlayerData
     , playerAvailabilityDataFile
     , playerStatsDataFile
@@ -37,14 +40,26 @@ data RawAvailability = RawAvailability
 
 playerStatsDataFile :: FilePath
 playerStatsDataFile =
-    "data/epl/player-stats-sample.csv"
+    keyPlayerStatsDataFile
 
 playerAvailabilityDataFile :: FilePath
 playerAvailabilityDataFile =
-    "data/epl/player-availability-sample.csv"
+    keyPlayerAvailabilityDataFile
+
+keyPlayerStatsDataFile :: FilePath
+keyPlayerStatsDataFile =
+    "data/epl/key-player-stats-2024-2025.csv"
+
+keyPlayerAvailabilityDataFile :: FilePath
+keyPlayerAvailabilityDataFile =
+    "data/epl/key-player-availability-2024-2025.csv"
 
 loadSamplePlayerData :: [Team] -> IO ([PlayerStats], [PlayerAvailability])
 loadSamplePlayerData =
+    loadKeyPlayerData
+
+loadKeyPlayerData :: [Team] -> IO ([PlayerStats], [PlayerAvailability])
+loadKeyPlayerData =
     loadPlayerData playerStatsDataFile playerAvailabilityDataFile
 
 loadPlayerData :: FilePath -> FilePath -> [Team] -> IO ([PlayerStats], [PlayerAvailability])

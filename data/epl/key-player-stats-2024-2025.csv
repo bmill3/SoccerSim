@@ -1,0 +1,21 @@
+PlayerId,PlayerName,Team,Position,Appearances,Starts,Minutes,Goals,Assists,ShotsOnTarget,Tackles,Interceptions,Saves,Rating
+1001,Bukayo Saka,Arsenal,Forward,25,20,1728,6,10,23,0,0,0,7.24
+1002,Ollie Watkins,Aston Villa,Forward,38,31,2598,16,8,40,0,0,0,6.96
+1003,Antoine Semenyo,Bournemouth,Forward,37,36,3203,11,5,41,0,0,0,6.95
+1004,Bryan Mbeumo,Brentford,Forward,38,38,3414,20,7,41,0,0,0,7.02
+1005,Joao Pedro,Brighton,Forward,27,23,1948,10,6,20,0,0,0,6.77
+1006,Cole Palmer,Chelsea,Midfielder,37,36,3190,15,8,51,0,0,0,7.44
+1007,Jean-Philippe Mateta,Crystal Palace,Forward,37,33,2647,14,2,33,0,0,0,6.92
+1008,Iliman Ndiaye,Everton,Forward,33,29,2440,9,0,17,0,0,0,
+1009,Alex Iwobi,Fulham,Midfielder,38,35,2981,9,6,29,0,0,0,7.10
+1010,Liam Delap,Ipswich,Forward,37,32,2617,12,2,32,0,0,0,
+1011,Jamie Vardy,Leicester,Forward,35,35,2825,9,4,26,0,0,0,6.50
+1012,Mohamed Salah,Liverpool,Forward,38,38,3371,29,18,61,0,0,0,7.51
+1013,Erling Haaland,Man City,Forward,31,31,2737,22,3,60,0,0,0,7.25
+1014,Bruno Fernandes,Man United,Midfielder,36,35,3018,8,10,29,0,0,0,7.05
+1015,Alexander Isak,Newcastle,Forward,34,34,2757,23,6,46,0,0,0,7.30
+1016,Chris Wood,Nott'm Forest,Forward,36,35,2979,20,3,35,0,0,0,7.01
+1017,Paul Onuachu,Southampton,Forward,25,11,1049,4,1,15,0,0,0,6.68
+1018,James Maddison,Tottenham,Midfielder,31,21,1808,9,7,17,0,0,0,7.44
+1019,Jarrod Bowen,West Ham,Forward,34,34,2973,13,8,37,0,0,0,7.17
+1020,Matheus Cunha,Wolves,Forward,33,29,2597,15,6,44,0,0,0,7.20

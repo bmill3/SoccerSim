@@ -12,8 +12,12 @@ uses `HomeTeam`, `AwayTeam`, `FTHG`, and `FTAG` to build fixtures, results,
 team attack strength, team defense strength, fixture probabilities, and
 projected expected-points standings.
 
-`player-stats-sample.csv` and `player-availability-sample.csv` are small sample
-inputs for the player-aware prediction feature. They are intentionally compact
-so the model can be tested without needing a paid live player/injury API. Replace
-or extend them with fuller player stats, predicted lineups, injuries, and
-suspensions when better data is available.
+`key-player-stats-2024-2025.csv` contains one real 2024-25 key attacking player
+for each Premier League club in the latest completed season file. The app loads
+this file by default through `PlayerData`.
+
+`key-player-availability-2024-2025.csv` is an editable scenario file for starts,
+bench roles, injuries, suspensions, and not-called-up status. It is not a live
+injury feed; by default it assumes all key players start and play 90 minutes.
+
+See `PLAYER_DATA_SOURCES.md` for the player-data source notes.

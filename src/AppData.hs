@@ -12,7 +12,7 @@ module AppData
 import Data.Maybe (listToMaybe)
 import DataLoader (loadSampleTeams)
 import FixtureGenerator (generateRoundRobinFixtures)
-import PlayerData (loadSamplePlayerData)
+import PlayerData (loadKeyPlayerData)
 import PremierLeagueData (loadLatestPremierLeagueTeams, loadPremierLeagueHistory)
 import SeasonSimulator (simulateSeason)
 import Simulation (applyResults)
@@ -96,7 +96,7 @@ loadPremierLeagueSimulation :: IO SeasonSimulation
 loadPremierLeagueSimulation = do
     (_, historicalFixtures) <- loadPremierLeagueHistory
     leagueTeams <- loadLatestPremierLeagueTeams
-    (playerStats, availability) <- loadSamplePlayerData leagueTeams
+    (playerStats, availability) <- loadKeyPlayerData leagueTeams
     pure (simulateSeason leagueTeams historicalFixtures playerStats availability)
 
 buildSampleSeason :: Season

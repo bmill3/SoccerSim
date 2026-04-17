@@ -3,7 +3,7 @@ module Main where
 import AppData (GuiData (..), GuiWeek (..), loadGuiData)
 import Data.List (nub, sort)
 import FixtureGenerator (generateDoubleRoundRobinFixtures, generateRoundRobinFixtures)
-import PlayerData (loadSamplePlayerData)
+import PlayerData (loadKeyPlayerData)
 import Predictor (predictFixture, predictFixtureWithPlayers, predictStandings)
 import PremierLeagueData (loadLatestPremierLeagueTeams, loadPremierLeagueHistory)
 import SeasonSimulator (simulateSeason)
@@ -156,14 +156,21 @@ testPredictFixture = do
 testPlayerAvailabilityAdjustsPrediction :: IO ()
 testPlayerAvailabilityAdjustsPrediction = do
     (teams, historicalFixtures) <- loadPremierLeagueHistory
-    (playerStats, availability) <- loadSamplePlayerData teams
+    (playerStats, availability) <- loadKeyPlayerData teams
+    assertEqual "Expected one key player per Premier League team." 20 (length playerStats)
+    assertEqual "Expected one availability row per key player." 20 (length availability)
     let fixture =
             (head historicalFixtures)
                 { matchStatus = Scheduled
                 , matchResult = Nothing
                 }
         basePrediction = predictFixture historicalFixtures fixture
-        playerAwarePrediction = predictFixtureWithPlayers historicalFixtures playerStats availability fixture
+        scenarioAvailability =
+            case availability of
+                firstAvailability : rest ->
+                    firstAvailability {availabilityStatus = Injured, expectedMinutes = 0} : rest
+                [] -> []
+        playerAwarePrediction = predictFixtureWithPlayers historicalFixtures playerStats scenarioAvailability fixture
         baseProbabilities = outcomeProbabilities basePrediction
         playerProbabilities = outcomeProbabilities playerAwarePrediction
     assertBool
@@ -191,7 +198,7 @@ testSeasonSimulation :: IO ()
 testSeasonSimulation = do
     teams <- loadLatestPremierLeagueTeams
     (_, historicalFixtures) <- loadPremierLeagueHistory
-    (playerStats, availability) <- loadSamplePlayerData teams
+    (playerStats, availability) <- loadKeyPlayerData teams
     let simulation = simulateSeason teams historicalFixtures playerStats availability
         matchWeeks = simulatedMatchWeeks simulation
         finalWeek = last matchWeeks
