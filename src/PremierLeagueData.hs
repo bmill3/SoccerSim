@@ -1,8 +1,10 @@
 module PremierLeagueData
-    ( loadLatestPremierLeagueTeams
+    ( loadCurrentPremierLeagueTeams
+    , loadLatestPremierLeagueTeams
     , loadPremierLeagueHistory
     , loadPremierLeagueSeasonFiles
     , loadPremierLeagueTeamsFromFile
+    , premierLeagueCurrentTeamsFile
     , parsePremierLeagueCsv
     , premierLeagueDataFiles
     ) where
@@ -28,13 +30,29 @@ premierLeagueDataFiles =
     , "data/epl/epl-2024-2025.csv"
     ]
 
+premierLeagueCurrentTeamsFile :: FilePath
+premierLeagueCurrentTeamsFile =
+    "data/epl/epl-2025-2026-teams.csv"
+
 loadPremierLeagueHistory :: IO ([Team], FixtureList)
 loadPremierLeagueHistory =
     loadPremierLeagueSeasonFiles premierLeagueDataFiles
 
 loadLatestPremierLeagueTeams :: IO [Team]
 loadLatestPremierLeagueTeams =
-    loadPremierLeagueTeamsFromFile (last premierLeagueDataFiles)
+    loadCurrentPremierLeagueTeams
+
+loadCurrentPremierLeagueTeams :: IO [Team]
+loadCurrentPremierLeagueTeams = do
+    contents <- readFile premierLeagueCurrentTeamsFile
+    pure
+        [ Team
+            { teamId = teamNumber
+            , teamName = name
+            , teamShortName = makeShortName name
+            }
+        | (teamNumber, name) <- zip [1 ..] (parseCurrentTeamsCsv contents)
+        ]
 
 loadPremierLeagueTeamsFromFile :: FilePath -> IO [Team]
 loadPremierLeagueTeamsFromFile filePath = do
@@ -64,6 +82,17 @@ parsePremierLeagueCsv contents =
           where
             header = map stripBom (parseCsvLine headerLine)
             numberedRows = zip [2 :: Int ..] (filter (not . null) dataLines)
+
+parseCurrentTeamsCsv :: String -> [String]
+parseCurrentTeamsCsv contents =
+    case lines contents of
+        [] -> []
+        _headerLine : dataLines ->
+            [ trim clubName
+            | rowText <- filter (not . null) dataLines
+            , let values = parseCsvLine rowText
+            , clubName : _ <- [values]
+            ]
 
 parseRow :: [String] -> (Int, String) -> Either String RawMatch
 parseRow header (lineNumber, rowText) =

@@ -10,6 +10,7 @@ module PlayerData
 
 import Data.Char (isSpace, toLower)
 import Data.List (find)
+import Data.Maybe (mapMaybe)
 import Text.Read (readMaybe)
 import Types
 
@@ -70,14 +71,9 @@ loadPlayerData statsPath availabilityPath teams = do
         (Left message, _) -> fail message
         (_, Left message) -> fail message
         (Right rawStats, Right rawAvailability) -> do
-            let stats = map (buildPlayerStats teams) rawStats
-            case sequence stats of
-                Nothing -> fail "Player stats reference a team that was not found in the loaded fixture data."
-                Just playerStats -> do
-                    let availability = map (buildAvailability playerStats) rawAvailability
-                    case sequence availability of
-                        Nothing -> fail "Player availability references a player that was not found in player stats."
-                        Just playerAvailability -> pure (playerStats, playerAvailability)
+            let playerStats = mapMaybe (buildPlayerStats teams) rawStats
+                playerAvailability = mapMaybe (buildAvailability playerStats) rawAvailability
+            pure (playerStats, playerAvailability)
 
 parsePlayerStatsCsv :: String -> Either String [RawPlayerStats]
 parsePlayerStatsCsv contents =
