@@ -600,7 +600,7 @@ renderClientScript guiData =
         , "const canvasContext = elements.matchSimCanvas.getContext('2d');"
         , ""
         , "const teamCodeAliases = {"
-        , "  AV: 'AVL', B: 'BHA', CP: 'CRY', MC: 'MCI', MU: 'MUN', NF: 'NFO', WH: 'WHU'"
+        , "  AV: 'AVL', B: 'BHA', BRI: 'BHA', CP: 'CRY', MC: 'MCI', MU: 'MUN', NF: 'NFO', WH: 'WHU'"
         , "};"
         , ""
         , "function canonicalTeamCode(shortName) {"

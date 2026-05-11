@@ -178,9 +178,10 @@ testPredictFixture = do
 
 testPlayerAvailabilityAdjustsPrediction :: IO ()
 testPlayerAvailabilityAdjustsPrediction = do
-    (teams, historicalFixtures) <- loadPremierLeagueHistory
+    teams <- loadLatestPremierLeagueTeams
+    (_, historicalFixtures) <- loadPremierLeagueHistory
     (playerStats, availability) <- loadKeyPlayerData teams
-    assertBool "Expected key-player data for most Premier League teams." (length playerStats >= 17)
+    assertEqual "Expected one key player per Premier League team." 20 (length playerStats)
     assertEqual "Expected one availability row per loaded key player." (length playerStats) (length availability)
     let fixture =
             (head historicalFixtures)
